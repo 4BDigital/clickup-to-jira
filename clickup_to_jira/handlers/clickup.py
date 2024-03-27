@@ -1,9 +1,12 @@
+import os
+import pickle
 from logging import getLogger
 from time import sleep
 
 from clickup_to_jira.comment import Comment
 from clickup_to_jira.utils import get_item_from_user_input
 from pyclickup import ClickUp
+from pathlib import Path
 
 logger = getLogger(__name__)
 
@@ -59,10 +62,22 @@ class ClickUpHandler(ClickUp):
         :return: The updated tasks
         :rtype: list(Task)
         """
+        migration_dir = os.path.join(Path.home(), 'JiraMigration')
+        if not os.path.isdir(migration_dir):
+            os.makedirs(migration_dir)
+
         for task in tasks:
             logger.info(f"Retrieving task {task.name}")
             sleep(SLEEP_PER_REQUEST)
-            task.comments = self.get_task_comments(task)
+            fname = os.path.join(migration_dir, f'{task.id}-comments.pkl')
+            if os.path.exists(fname):
+                with open(fname, 'rb') as inp:
+                    task.comments = pickle.load(inp)
+            else:
+                task.comments = self.get_task_comments(task)
+                with open(fname, 'wb') as outp:
+                    pickle.dump(task.comments, outp, pickle.HIGHEST_PROTOCOL)
+
         return tasks
 
     @staticmethod
@@ -74,8 +89,8 @@ class ClickUpHandler(ClickUp):
         :return: The updated tasks
         :rtype: list(Task)
         """
-        for task in tasks:
-            task.parent = None
+        # for task in tasks:
+        #     task.parent = None
 
         for task in tasks:
             logger.info(f"Retrieving father for task {task.name}")
