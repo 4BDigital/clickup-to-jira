@@ -6,6 +6,7 @@ from time import sleep
 from clickup_to_jira.comment import Comment
 from clickup_to_jira.utils import get_item_from_user_input
 from pyclickup import ClickUp
+from pathlib import Path
 
 logger = getLogger(__name__)
 
@@ -61,10 +62,14 @@ class ClickUpHandler(ClickUp):
         :return: The updated tasks
         :rtype: list(Task)
         """
+        migration_dir = os.path.join(Path.home(), 'JiraMigration')
+        if not os.path.isdir(migration_dir):
+            os.makedirs(migration_dir)
+
         for task in tasks:
             logger.info(f"Retrieving task {task.name}")
             sleep(SLEEP_PER_REQUEST)
-            fname = f'C:\\Users\\franc\\OneDrive\\Trabalho\\4BDigital\\JiraMigration\\{task.id}-comments.pkl'
+            fname = os.path.join(migration_dir, f'{task.id}-comments.pkl')
             if os.path.exists(fname):
                 with open(fname, 'rb') as inp:
                     task.comments = pickle.load(inp)
